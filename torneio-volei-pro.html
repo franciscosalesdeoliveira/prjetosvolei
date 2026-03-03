@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão de Torneios - Vôlei de Praia</title>
+
+<style>
+:root{
+    --areia:#F4E3C1;
+    --oceano:#0077b6;
+    --dourado:#d4af37;
+    --escuro:#1e1e1e;
+    --branco:#ffffff;
+}
+
+body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:linear-gradient(to bottom, var(--oceano), var(--areia));
+    color:var(--escuro);
+}
+
+header{
+    padding:20px;
+    text-align:center;
+    background:var(--oceano);
+    color:white;
+    font-size:22px;
+    font-weight:bold;
+}
+
+.container{
+    padding:20px;
+    max-width:1200px;
+    margin:auto;
+}
+
+.card{
+    background:white;
+    padding:15px;
+    border-radius:12px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.1);
+    margin-bottom:20px;
+}
+
+button{
+    background:var(--oceano);
+    color:white;
+    border:none;
+    padding:8px 14px;
+    border-radius:8px;
+    cursor:pointer;
+    margin-top:5px;
+}
+
+button:hover{
+    opacity:0.9;
+}
+
+input, select{
+    padding:6px;
+    margin:5px 0;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+
+.group-box{
+    border:2px solid var(--dourado);
+    padding:10px;
+    margin-top:10px;
+    border-radius:10px;
+}
+
+.badge{
+    padding:4px 8px;
+    border-radius:6px;
+    font-size:12px;
+    color:white;
+}
+
+.status-running{ background:#f39c12; }
+.status-finished{ background:#27ae60; }
+
+.leader{
+    background:#fff8dc;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+🏐 Sistema Profissional de Gestão - Vôlei de Praia
+</header>
+
+<div class="container">
+
+<div class="card">
+<h3>Cadastro do Torneio</h3>
+<input type="text" id="tournamentName" placeholder="Nome do torneio">
+<input type="date" id="tournamentDate">
+<input type="text" id="tournamentLocation" placeholder="Local">
+<button onclick="createTournament()">Criar Torneio</button>
+</div>
+
+<div id="categoriesArea"></div>
+
+</div>
+
+<script>
+
+/* ================= STORAGE ================= */
+
+const Storage = {
+    save(data){
+        localStorage.setItem("beachTournament", JSON.stringify(data));
+    },
+    load(){
+        return JSON.parse(localStorage.getItem("beachTournament")) || null;
+    },
+    clear(){
+        localStorage.removeItem("beachTournament");
+    }
+};
+
+/* ================= MODELO ================= */
+
+let tournament = Storage.load() || {
+    name:"",
+    date:"",
+    location:"",
+    categories:[]
+};
+
+/* ================= TORNEIO ================= */
+
+function createTournament(){
+    tournament.name = document.getElementById("tournamentName").value;
+    tournament.date = document.getElementById("tournamentDate").value;
+    tournament.location = document.getElementById("tournamentLocation").value;
+    Storage.save(tournament);
+    renderCategories();
+}
+
+/* ================= CATEGORIA ================= */
+
+function addCategory(){
+    tournament.categories.push({
+        id:Date.now(),
+        name:"Nova Categoria",
+        teams:[],
+        groups:[],
+        series:false,
+        status:"running"
+    });
+    Storage.save(tournament);
+    renderCategories();
+}
+
+function toggleSeries(id){
+    let cat = tournament.categories.find(c=>c.id===id);
+    cat.series = !cat.series;
+    Storage.save(tournament);
+    renderCategories();
+}
+
+function addTeam(id){
+    let name = prompt("Nome da dupla:");
+    if(!name) return;
+
+    if(tournament.categories.some(c=>c.teams.includes(name))){
+        alert("Dupla já cadastrada em outra categoria.");
+        return;
+    }
+
+    let cat = tournament.categories.find(c=>c.id===id);
+    cat.teams.push(name);
+    Storage.save(tournament);
+    renderCategories();
+}
+
+/* ================= SORTEIO ================= */
+
+function shuffle(array){
+    return array.sort(()=>Math.random()-0.5);
+}
+
+function drawGroups(id){
+    let cat = tournament.categories.find(c=>c.id===id);
+    let shuffled = shuffle([...cat.teams]);
+    let groupCount = parseInt(prompt("Quantidade de grupos:"));
+    if(!groupCount || groupCount<=0) return;
+
+    cat.groups = [];
+
+    for(let i=0;i<groupCount;i++){
+        cat.groups.push({name:String.fromCharCode(65+i), teams:[], matches:[]});
+    }
+
+    shuffled.forEach((team,i)=>{
+        cat.groups[i%groupCount].teams.push(team);
+    });
+
+    generateMatches(cat);
+
+    Storage.save(tournament);
+    renderCategories();
+}
+
+/* ================= JOGOS ================= */
+
+function generateMatches(cat){
+    cat.groups.forEach(group=>{
+        group.matches=[];
+        for(let i=0;i<group.teams.length;i++){
+            for(let j=i+1;j<group.teams.length;j++){
+                group.matches.push({
+                    teamA:group.teams[i],
+                    teamB:group.teams[j],
+                    scoreA:null,
+                    scoreB:null,
+                    finished:false
+                });
+            }
+        }
+    });
+}
+
+function finishMatch(catId, groupName, index){
+    let cat = tournament.categories.find(c=>c.id===catId);
+    let group = cat.groups.find(g=>g.name===groupName);
+    let match = group.matches[index];
+
+    let a = parseInt(prompt("Pontos "+match.teamA));
+    let b = parseInt(prompt("Pontos "+match.teamB));
+
+    if(!validScore(a,b)){
+        alert("Placar inválido. Jogo até 21 com diferença mínima de 2.");
+        return;
+    }
+
+    match.scoreA=a;
+    match.scoreB=b;
+    match.finished=true;
+
+    Storage.save(tournament);
+    renderCategories();
+}
+
+function validScore(a,b){
+    if(a<0||b<0) return false;
+    if(a<21 && b<21) return false;
+    if(Math.abs(a-b)<2) return false;
+    return true;
+}
+
+/* ================= CLASSIFICAÇÃO ================= */
+
+function calculateRanking(group){
+
+    let table={};
+
+    group.teams.forEach(t=>{
+        table[t]={
+            wins:0,
+            losses:0,
+            scored:0,
+            conceded:0
+        };
+    });
+
+    group.matches.forEach(m=>{
+        if(!m.finished) return;
+
+        table[m.teamA].scored+=m.scoreA;
+        table[m.teamA].conceded+=m.scoreB;
+
+        table[m.teamB].scored+=m.scoreB;
+        table[m.teamB].conceded+=m.scoreA;
+
+        if(m.scoreA>m.scoreB){
+            table[m.teamA].wins++;
+            table[m.teamB].losses++;
+        }else{
+            table[m.teamB].wins++;
+            table[m.teamA].losses++;
+        }
+    });
+
+    return Object.entries(table)
+    .map(([team,data])=>({
+        team,
+        ...data,
+        saldo:data.scored-data.conceded
+    }))
+    .sort((a,b)=>{
+        if(b.wins!==a.wins) return b.wins-a.wins;
+        if(b.saldo!==a.saldo) return b.saldo-a.saldo;
+        return b.scored-a.scored;
+    });
+}
+
+/* ================= RENDER ================= */
+
+function renderCategories(){
+
+    const area = document.getElementById("categoriesArea");
+    area.innerHTML="";
+
+    let header = document.createElement("div");
+    header.className="card";
+    header.innerHTML=`<h3>${tournament.name || ""}</h3>
+    <button onclick="addCategory()">Adicionar Categoria</button>`;
+    area.appendChild(header);
+
+    tournament.categories.forEach(cat=>{
+
+        let div=document.createElement("div");
+        div.className="card";
+
+        div.innerHTML=`
+        <h3>${cat.name}
+        <span class="badge ${cat.status==='running'?'status-running':'status-finished'}">
+        ${cat.status==='running'?'Em andamento':'Finalizado'}
+        </span>
+        </h3>
+
+        <button onclick="addTeam(${cat.id})">Adicionar Dupla</button>
+        <button onclick="drawGroups(${cat.id})">Sortear Grupos</button>
+        <button onclick="toggleSeries(${cat.id})">
+        ${cat.series?'Séries Ativadas':'Sem Séries'}
+        </button>
+
+        <h4>Duplas:</h4>
+        ${cat.teams.join("<br>")}
+        `;
+
+        cat.groups.forEach(group=>{
+
+            let ranking = calculateRanking(group);
+
+            let groupDiv=document.createElement("div");
+            groupDiv.className="group-box";
+
+            groupDiv.innerHTML=`
+            <h4>Grupo ${group.name}</h4>
+            <b>Classificação</b><br>
+            ${ranking.map((r,i)=>`
+            <div class="${i===0?'leader':''}">
+            ${i+1}º ${r.team} - ${r.wins}V - Saldo:${r.saldo}
+            </div>`).join("")}
+            <hr>
+            ${group.matches.map((m,i)=>`
+            ${m.teamA} x ${m.teamB}
+            ${m.finished?`(${m.scoreA}x${m.scoreB})`:
+            `<button onclick="finishMatch(${cat.id},'${group.name}',${i})">Finalizar</button>`}
+            <br>
+            `).join("")}
+            `;
+
+            div.appendChild(groupDiv);
+        });
+
+        area.appendChild(div);
+    });
+}
+
+renderCategories();
+
+</script>
+
+</body>
+</html>

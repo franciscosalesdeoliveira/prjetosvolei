@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controle de Torneio de Vôlei</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap');
+
+    :root {
+      --orange: #FF5A1F;
+      --orange-dark: #c93e0a;
+      --navy: #0D1B2A;
+      --navy-mid: #162436;
+      --navy-light: #1e3048;
+      --gold: #FFD166;
+      --white: #F0F4F8;
+      --border: rgba(255,90,31,0.35);
+      --cell-bg: rgba(255,255,255,0.04);
+      --cell-hover: rgba(255,90,31,0.08);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--navy);
+      color: var(--white);
+      font-family: 'Barlow', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Background texture ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255,90,31,0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 100% 80%, rgba(255,90,31,0.10) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Header ── */
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 28px 24px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      border-bottom: 2px solid var(--border);
+      background: linear-gradient(180deg, rgba(13,27,42,0.95) 0%, rgba(13,27,42,0.80) 100%);
+      backdrop-filter: blur(8px);
+    }
+
+    .header-left { display: flex; align-items: center; gap: 16px; }
+
+    .logo {
+      width: 52px;
+      height: 52px;
+      background: var(--orange);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      flex-shrink: 0;
+      box-shadow: 0 0 24px rgba(255,90,31,0.5);
+    }
+
+    .title-block h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(22px, 4vw, 36px);
+      letter-spacing: 2px;
+      color: var(--white);
+      line-height: 1;
+    }
+
+    .title-block p {
+      font-size: 12px;
+      color: var(--gold);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .btn {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+
+    .btn-clear {
+      background: transparent;
+      border: 2px solid var(--orange);
+      color: var(--orange);
+    }
+    .btn-clear:hover { background: var(--orange); color: #fff; }
+
+    .btn-add {
+      background: var(--orange);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(255,90,31,0.4);
+    }
+    .btn-add:hover { background: var(--orange-dark); transform: translateY(-1px); }
+
+    /* ── Table wrapper ── */
+    .table-wrapper {
+      position: relative;
+      z-index: 5;
+      overflow-x: auto;
+      padding: 24px 16px 40px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 900px;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    /* ── Sticky header row ── */
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--navy-mid);
+      border-bottom: 3px solid var(--orange);
+      border-right: 1px solid var(--border);
+      padding: 14px 10px;
+      text-align: center;
+    }
+
+    thead th:last-child { border-right: none; }
+
+    .court-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(14px, 2vw, 20px);
+      letter-spacing: 2px;
+      color: var(--white);
+      display: block;
+    }
+
+    .court-num {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 24px;
+      line-height: 1;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 6px auto 0;
+      box-shadow: 0 0 14px rgba(255,90,31,0.5);
+    }
+
+    /* ── Body cells ── */
+    tbody tr { transition: background 0.15s; }
+    tbody tr:hover td { background: var(--cell-hover); }
+
+    tbody td {
+      background: var(--cell-bg);
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 0;
+      vertical-align: top;
+      min-width: 120px;
+    }
+
+    tbody td:last-child { border-right: none; }
+
+    .cell-inner {
+      padding: 10px 10px 8px;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .field-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--gold);
+      opacity: 0.75;
+    }
+
+    .field-input {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 5px;
+      color: var(--white);
+      font-family: 'Barlow', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 5px 8px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .field-input:focus {
+      border-color: var(--orange);
+      background: rgba(255,90,31,0.10);
+    }
+
+    .field-input::placeholder { color: rgba(255,255,255,0.25); font-size: 12px; }
+
+    /* ── Row controls ── */
+    .row-index {
+      position: sticky;
+      left: 0;
+      background: var(--navy-mid);
+      border-right: 2px solid var(--orange);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      text-align: center;
+      padding: 0 8px;
+      min-width: 36px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 16px;
+      color: var(--orange);
+      vertical-align: middle;
+    }
+
+    thead .row-index-head {
+      position: sticky;
+      left: 0;
+      z-index: 21;
+      background: var(--navy-mid);
+      border-right: 2px solid var(--orange);
+      min-width: 36px;
+    }
+
+    /* ── Delete row btn ── */
+    .btn-del-row {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.2);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: color 0.15s;
+      align-self: flex-end;
+    }
+    .btn-del-row:hover { color: #ff4444; }
+
+    /* ── Status tag ── */
+    .status-select {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 5px;
+      color: var(--white);
+      font-family: 'Barlow', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 6px;
+      width: 100%;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .status-select:focus { border-color: var(--orange); }
+
+    .status-select option { background: var(--navy-mid); }
+
+    /* ── Footer ── */
+    footer {
+      position: relative;
+      z-index: 5;
+      text-align: center;
+      padding: 16px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.25);
+      letter-spacing: 1px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      header { padding: 16px 12px; }
+      .table-wrapper { padding: 12px 8px 32px; }
+      .cell-inner { min-height: 90px; }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--navy-mid); }
+    ::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">🏐</div>
+    <div class="title-block">
+      <h1>Controle de Torneio</h1>
+      <p>Vôlei &mdash; Gestão de Quadras</p>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-add" onclick="addRow()">+ Adicionar Linha</button>
+    <button class="btn btn-clear" onclick="clearTable()">Limpar Tabela</button>
+  </div>
+</header>
+
+<div class="table-wrapper">
+  <table id="tournament-table">
+    <thead>
+      <tr>
+        <th class="row-index-head">#</th>
+        <th>
+          <span class="court-label">Quadra</span>
+          <span class="court-num">1</span>
+        </th>
+        <th>
+          <span class="court-label">Quadra</span>
+          <span class="court-num">2</span>
+        </th>
+        <th>
+          <span class="court-label">Quadra</span>
+          <span class="court-num">3</span>
+        </th>
+        <th>
+          <span class="court-label">Quadra</span>
+          <span class="court-num">4</span>
+        </th>
+        <th>
+          <span class="court-label">Quadra</span>
+          <span class="court-num">5</span>
+        </th>
+        <th>
+          <span class="court-label">Quadra</span>
+          <span class="court-num">6</span>
+        </th>
+        <th>
+          <span class="court-label">Quadra</span>
+          <span class="court-num">7</span>
+        </th>
+        <th>
+          <span class="court-label">Quadra</span>
+          <span class="court-num">8</span>
+        </th>
+        <th>
+          <span class="court-label">Quadra</span>
+          <span class="court-num">9</span>
+        </th>
+        <th>
+          <span class="court-label">Quadra</span>
+          <span class="court-num">10</span>
+        </th>
+      </tr>
+    </thead>
+    <tbody id="table-body">
+      <!-- rows generated by JS -->
+    </tbody>
+  </table>
+</div>
+
+<footer>🏐 Torneio de Vôlei &mdash; Clique nas células para editar</footer>
+
+<script>
+  const COURTS = 10;
+  const INITIAL_ROWS = 10;
+
+  function createRow(rowNum) {
+    const tr = document.createElement('tr');
+    tr.dataset.row = rowNum;
+
+    // index cell
+    const tdIdx = document.createElement('td');
+    tdIdx.className = 'row-index';
+    tdIdx.textContent = rowNum;
+    tr.appendChild(tdIdx);
+
+    for (let c = 1; c <= COURTS; c++) {
+      const td = document.createElement('td');
+      td.innerHTML = `
+        <div class="cell-inner">
+          <button class="btn-del-row" title="Remover linha" onclick="removeRow(this)">✕</button>
+          <div class="field-group">
+            <span class="field-label">Fase</span>
+            <select class="status-select">
+              <option value="">— Selecionar Fase —</option>
+              <option value="grupos">🏐 Fase de Grupos</option>
+              <option value="oitavas">⚔️ Oitavas de Final</option>
+              <option value="quartas">🔥 Quartas de Final</option>
+              <option value="semi">⭐ Semifinal</option>
+              <option value="final">🏆 Final</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <span class="field-label">Jogo</span>
+            <input class="field-input" type="text" placeholder="Ex: Jogo 1 – Time A x Time B" maxlength="60" />
+          </div>
+          <div class="field-group">
+            <span class="field-label">Status</span>
+            <select class="status-select">
+              <option value="">— Aguardando —</option>
+              <option value="em_jogo">🟢 Em Jogo</option>
+              <option value="concluido">✅ Concluído</option>
+              <option value="cancelado">🔴 Cancelado</option>
+              <option value="intervalo">🟡 Intervalo</option>
+            </select>
+          </div>
+        </div>`;
+      tr.appendChild(td);
+    }
+    return tr;
+  }
+
+  function addRow() {
+    const tbody = document.getElementById('table-body');
+    const rowNum = tbody.rows.length + 1;
+    tbody.appendChild(createRow(rowNum));
+    renumberRows();
+  }
+
+  function removeRow(btn) {
+    const row = btn.closest('tr');
+    row.remove();
+    renumberRows();
+  }
+
+  function renumberRows() {
+    const rows = document.querySelectorAll('#table-body tr');
+    rows.forEach((tr, i) => {
+      tr.querySelector('.row-index').textContent = i + 1;
+      tr.dataset.row = i + 1;
+    });
+  }
+
+  function clearTable() {
+    if (!confirm('Tem certeza que deseja limpar toda a tabela?')) return;
+    document.querySelectorAll('#table-body .field-input').forEach(inp => inp.value = '');
+    document.querySelectorAll('#table-body .status-select').forEach(sel => sel.value = '');
+  }
+
+  // Alerta ao tentar recarregar/fechar a página
+  function hasData() {
+    const inputs = document.querySelectorAll('#table-body .field-input');
+    const selects = document.querySelectorAll('#table-body .status-select');
+    for (const inp of inputs) { if (inp.value.trim()) return true; }
+    for (const sel of selects) { if (sel.value) return true; }
+    return false;
+  }
+
+  window.addEventListener('beforeunload', function(e) {
+    if (hasData()) {
+      e.preventDefault();
+      e.returnValue = 'Existem informações preenchidas na tabela. Tem certeza que deseja sair e perder os dados?';
+    }
+  });
+
+  // Init
+  const tbody = document.getElementById('table-body');
+  for (let r = 1; r <= INITIAL_ROWS; r++) {
+    tbody.appendChild(createRow(r));
+  }
+</script>
+</body>
+</html>

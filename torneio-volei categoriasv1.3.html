@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campeonato Oficial de Vôlei de Praia</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Oswald:wght@400;600;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #f5e6c8 0%, #e8c98a 35%, #d4a96a 65%, #c8935a 85%, #b87d4a 100%);
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+    padding-bottom: 56px;
+  }
+
+  /* ── BANNER ── */
+  header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+    padding: 32px 24px 20px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.45);
+    position: relative;
+  }
+  header::after {
+    content: '';
+    display: block;
+    margin: 18px auto 0;
+    width: 70%;
+    max-width: 600px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #c9a84c, #f0d080, #c9a84c, transparent);
+    border-radius: 2px;
+  }
+  .banner-title {
+    font-family: 'Oswald', 'Arial Narrow', sans-serif;
+    font-size: clamp(1.4rem, 4vw, 2.6rem);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #f0d080;
+    text-transform: uppercase;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    line-height: 1.15;
+  }
+  .banner-subtitle {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(0.85rem, 2vw, 1.15rem);
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    color: #c8b882;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+
+  /* ── LAYOUT ── */
+  .series-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 32px;
+    padding: 40px 24px 0;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .serie-block {
+    flex: 1 1 310px;
+    max-width: 420px;
+    min-width: 280px;
+    display: flex;
+    flex-direction: column;
+  }
+  .serie-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 10px;
+    padding: 6px 0;
+  }
+
+  /* ── TABLES ── */
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.14);
+  }
+  th, td {
+    padding: 0 10px;
+    height: 48px;
+    vertical-align: middle;
+    border-bottom: 1px solid rgba(0,0,0,0.12);
+    border-right: 1px solid rgba(0,0,0,0.10);
+    font-size: 0.97rem;
+  }
+  th:last-child, td:last-child { border-right: none; }
+  tr:last-child td { border-bottom: none; }
+  th {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 0.82rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+  td {
+    font-weight: 500;
+    outline: none;
+    transition: background 0.15s;
+  }
+  td[contenteditable] { cursor: text; }
+  td[contenteditable]:focus { outline: 2px solid rgba(255,255,255,0.55); outline-offset: -2px; }
+
+  .col-num   { width: 38px; text-align: center; cursor: default; }
+  .col-grupo { width: 68px; text-align: center; padding: 0 6px; }
+  .col-dupla { width: auto; }
+
+  /* ── SELECT GRUPO ── */
+  .sel-grupo {
+    width: 100%;
+    height: 34px;
+    border: none;
+    border-radius: 5px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-align-last: center;
+    cursor: pointer;
+    background-clip: padding-box;
+    transition: box-shadow 0.15s, opacity 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    padding: 0 4px;
+  }
+  .sel-grupo:focus { box-shadow: 0 0 0 2px rgba(255,255,255,0.6); }
+
+  .serie-ouro   .sel-grupo { background: linear-gradient(135deg,#c9a010,#e8c030); color:#3d2200; }
+  .serie-ouro   .sel-grupo:hover { opacity: 0.85; }
+  .serie-prata  .sel-grupo { background: linear-gradient(135deg,#666,#888); color:#f0f0f0; }
+  .serie-prata  .sel-grupo:hover { opacity: 0.85; }
+  .serie-bronze .sel-grupo { background: linear-gradient(135deg,#7a4e28,#a06838); color:#f5e0c8; }
+  .serie-bronze .sel-grupo:hover { opacity: 0.85; }
+
+  /* ── BOTÕES INFERIORES ── */
+  .btns-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  /* base compartilhada */
+  .btn-base {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 11px 0;
+    border-radius: 8px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.18s, transform 0.1s, opacity 0.18s, box-shadow 0.18s;
+  }
+  .btn-base:hover  { transform: translateY(-1px); }
+  .btn-base:active { transform: translateY(0); }
+  .btn-base .icon  { font-size: 1.05rem; line-height: 1; }
+
+  /* ADICIONAR — dashed / transparente */
+  .btn-add-row {
+    border: 2px dashed;
+    background: transparent;
+    opacity: 0.70;
+  }
+  .btn-add-row:hover { opacity: 1; }
+
+  .serie-ouro   .btn-add-row { border-color: #a07820; color: #7a5a10; }
+  .serie-ouro   .btn-add-row:hover { background: rgba(200,160,30,0.13); }
+  .serie-prata  .btn-add-row { border-color: #777;    color: #444; }
+  .serie-prata  .btn-add-row:hover { background: rgba(120,120,120,0.10); }
+  .serie-bronze .btn-add-row { border-color: #7a4e28; color: #5c3510; }
+  .serie-bronze .btn-add-row:hover { background: rgba(120,80,40,0.10); }
+
+  /* ORDENAR — sólido com cor do cabeçalho */
+  .btn-sort {
+    border: none;
+    opacity: 0.82;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  }
+  .btn-sort:hover { opacity: 1; box-shadow: 0 4px 14px rgba(0,0,0,0.24); }
+
+  .serie-ouro   .btn-sort { background: linear-gradient(135deg,#b8890a,#d4a820); color:#fff8e0; }
+  .serie-prata  .btn-sort { background: linear-gradient(135deg,#555,#777);       color:#eaeaea; }
+  .serie-bronze .btn-sort { background: linear-gradient(135deg,#7a4e28,#9e6a3a); color:#f5e0c8; }
+
+  /* feedback visual de ordenação concluída */
+  .btn-sort.sorted {
+    animation: sorted-pulse 0.55s ease;
+  }
+  @keyframes sorted-pulse {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+
+  /* ── OURO ── */
+  .serie-ouro table  { border: 4px solid #a07820; }
+  .serie-ouro .serie-title { color: #7a5a10; text-shadow: 0 1px 2px rgba(255,220,100,0.3); }
+  .serie-ouro thead tr { background: linear-gradient(135deg,#b8890a 0%,#d4a820 50%,#c09010 100%); color:#fff8e0; }
+  .serie-ouro tbody tr { background: linear-gradient(135deg,#fdf6dc 0%,#faefc0 100%); color:#3d2c00; }
+  .serie-ouro tbody tr:nth-child(even) { background: linear-gradient(135deg,#f7edbb 0%,#f2e4a8 100%); }
+  .serie-ouro tbody tr:hover { background: linear-gradient(135deg,#ffe9a0 0%,#ffd96a 100%); }
+
+  /* ── PRATA ── */
+  .serie-prata table  { border: 4px solid #888; }
+  .serie-prata .serie-title { color: #444; }
+  .serie-prata thead tr { background: linear-gradient(135deg,#555 0%,#777 50%,#5a5a5a 100%); color:#eaeaea; }
+  .serie-prata tbody tr { background: linear-gradient(135deg,#f2f2f2 0%,#e8e8e8 100%); color:#2a2a2a; }
+  .serie-prata tbody tr:nth-child(even) { background: linear-gradient(135deg,#e5e5e5 0%,#d8d8d8 100%); }
+  .serie-prata tbody tr:hover { background: linear-gradient(135deg,#dcdcdc 0%,#c8c8c8 100%); }
+
+  /* ── BRONZE ── */
+  .serie-bronze table  { border: 4px solid #7a4e28; }
+  .serie-bronze .serie-title { color: #5c3510; }
+  .serie-bronze thead tr { background: linear-gradient(135deg,#7a4e28 0%,#9e6a3a 50%,#835430 100%); color:#f5e0c8; }
+  .serie-bronze tbody tr { background: linear-gradient(135deg,#f5e6d2 0%,#ead8c0 100%); color:#3a1e08; }
+  .serie-bronze tbody tr:nth-child(even) { background: linear-gradient(135deg,#ecd9c4 0%,#dfc9ac 100%); }
+  .serie-bronze tbody tr:hover { background: linear-gradient(135deg,#e0c9a8 0%,#d0b48a 100%); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    .series-container { flex-direction: column; align-items: center; padding: 28px 16px 0; gap: 28px; }
+    .serie-block { max-width: 100%; width: 100%; }
+    .banner-title { letter-spacing: 0.06em; }
+    .btns-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="banner-title">Campeonato Oficial de Vôlei de Praia</div>
+  <div class="banner-subtitle">Divisão de Séries – Fase Classificatória</div>
+</header>
+
+<div class="series-container">
+
+  <!-- SÉRIE OURO -->
+  <div class="serie-block serie-ouro">
+    <div class="serie-title">🥇 Série Ouro</div>
+    <table id="tabela-ouro">
+      <thead>
+        <tr>
+          <th class="col-num">#</th>
+          <th class="col-grupo">Grupo</th>
+          <th class="col-dupla">Dupla</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-ouro"></tbody>
+    </table>
+    <div class="btns-row">
+      <button class="btn-base btn-add-row" onclick="adicionarLinha('tbody-ouro')">
+        <span class="icon">＋</span> Adicionar dupla
+      </button>
+      <button class="btn-base btn-sort" id="sort-ouro" onclick="ordenarPorGrupo('tbody-ouro', 'sort-ouro')">
+        <span class="icon">↕</span> Ordenar por grupo
+      </button>
+    </div>
+  </div>
+
+  <!-- SÉRIE PRATA -->
+  <div class="serie-block serie-prata">
+    <div class="serie-title">🥈 Série Prata</div>
+    <table id="tabela-prata">
+      <thead>
+        <tr>
+          <th class="col-num">#</th>
+          <th class="col-grupo">Grupo</th>
+          <th class="col-dupla">Dupla</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-prata"></tbody>
+    </table>
+    <div class="btns-row">
+      <button class="btn-base btn-add-row" onclick="adicionarLinha('tbody-prata')">
+        <span class="icon">＋</span> Adicionar dupla
+      </button>
+      <button class="btn-base btn-sort" id="sort-prata" onclick="ordenarPorGrupo('tbody-prata', 'sort-prata')">
+        <span class="icon">↕</span> Ordenar por grupo
+      </button>
+    </div>
+  </div>
+
+  <!-- SÉRIE BRONZE -->
+  <div class="serie-block serie-bronze">
+    <div class="serie-title">🥉 Série Bronze</div>
+    <table id="tabela-bronze">
+      <thead>
+        <tr>
+          <th class="col-num">#</th>
+          <th class="col-grupo">Grupo</th>
+          <th class="col-dupla">Dupla</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-bronze"></tbody>
+    </table>
+    <div class="btns-row">
+      <button class="btn-base btn-add-row" onclick="adicionarLinha('tbody-bronze')">
+        <span class="icon">＋</span> Adicionar dupla
+      </button>
+      <button class="btn-base btn-sort" id="sort-bronze" onclick="ordenarPorGrupo('tbody-bronze', 'sort-bronze')">
+        <span class="icon">↕</span> Ordenar por grupo
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  var LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+  /* ── Monta o <select> de grupos ── */
+  function buildSelectGrupo() {
+    var opts = '<option value="">–</option>';
+    LETRAS.forEach(function(l) {
+      opts += '<option value="' + l + '">' + l + '</option>';
+    });
+    return opts;
+  }
+
+  /* ── Cria uma linha completa ── */
+  function criarLinha(num) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="col-num">' + num + '</td>' +
+      '<td class="col-grupo"><select class="sel-grupo" onchange="marcarAlterado()">' + buildSelectGrupo() + '</select></td>' +
+      '<td class="col-dupla" contenteditable="true"></td>';
+    return tr;
+  }
+
+  /* ── Renumera todas as linhas de um tbody ── */
+  function renumerar(tbody) {
+    var rows = tbody.querySelectorAll('tr');
+    rows.forEach(function(tr, i) {
+      tr.querySelector('.col-num').textContent = i + 1;
+    });
+  }
+
+  /* ── Inicializa 10 linhas em cada tabela ── */
+  ['tbody-ouro', 'tbody-prata', 'tbody-bronze'].forEach(function(id) {
+    var tbody = document.getElementById(id);
+    for (var i = 1; i <= 10; i++) tbody.appendChild(criarLinha(i));
+  });
+
+  /* ── Adicionar linha ── */
+  function adicionarLinha(tbodyId) {
+    var tbody = document.getElementById(tbodyId);
+    var num   = tbody.querySelectorAll('tr').length + 1;
+    var tr    = criarLinha(num);
+    tbody.appendChild(tr);
+    tr.querySelector('[contenteditable]').focus();
+    marcarAlterado();
+  }
+
+  /* ── Ordenar por grupo (A → Z), linhas sem grupo vão para o final ── */
+  function ordenarPorGrupo(tbodyId, btnId) {
+    var tbody = document.getElementById(tbodyId);
+    var rows  = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+
+    rows.sort(function(a, b) {
+      var ga = a.querySelector('.sel-grupo').value || 'ZZZ'; // sem grupo vai pro fim
+      var gb = b.querySelector('.sel-grupo').value || 'ZZZ';
+      if (ga < gb) return -1;
+      if (ga > gb) return  1;
+      return 0;
+    });
+
+    // reinsere na ordem correta
+    rows.forEach(function(tr) { tbody.appendChild(tr); });
+
+    // renumera
+    renumerar(tbody);
+
+    // feedback visual no botão
+    var btn = document.getElementById(btnId);
+    btn.classList.remove('sorted');
+    // força reflow para reiniciar animação
+    void btn.offsetWidth;
+    btn.classList.add('sorted');
+
+    marcarAlterado();
+  }
+
+  /* ── Alerta ao sair / atualizar ── */
+  var alterado = false;
+  function marcarAlterado() { alterado = true; }
+
+  document.addEventListener('input', function(e) {
+    if (e.target && e.target.getAttribute('contenteditable') === 'true') marcarAlterado();
+  });
+  document.addEventListener('change', function(e) {
+    if (e.target && e.target.classList.contains('sel-grupo')) marcarAlterado();
+  });
+
+  window.addEventListener('beforeunload', function(e) {
+    if (alterado) {
+      var msg = 'As informações digitadas serão perdidas ao atualizar ou sair da página. Deseja continuar?';
+      e.preventDefault();
+      e.returnValue = msg;
+      return msg;
+    }
+  });
+</script>
+
+</body>
+</html>

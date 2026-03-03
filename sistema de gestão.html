@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão de Torneio Vôlei de Praia</title>
+
+<style>
+body{
+    font-family: Arial;
+    margin:0;
+    background: linear-gradient(to bottom,#f5e6c8,#f0d9a7);
+}
+header{
+    background:#e67e22;
+    color:white;
+    padding:15px;
+    text-align:center;
+}
+.container{padding:20px;}
+.card{
+    background:white;
+    padding:15px;
+    margin-bottom:15px;
+    border-radius:8px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.2);
+}
+button{
+    background:#e67e22;
+    color:white;
+    border:none;
+    padding:8px 12px;
+    margin:5px 0;
+    border-radius:5px;
+    cursor:pointer;
+}
+button:hover{background:#d35400;}
+input,select{
+    padding:5px;
+    margin:5px 0;
+}
+.group{
+    border:1px solid #ccc;
+    padding:10px;
+    margin:10px 0;
+}
+.highlight{
+    background:#d4efdf;
+}
+.bracket{
+    display:flex;
+    gap:20px;
+    overflow-x:auto;
+}
+.round{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+}
+.match{
+    border:1px solid #999;
+    padding:8px;
+    background:#fff;
+}
+.status-running{color:orange;}
+.status-done{color:green;}
+@media(max-width:600px){
+    .bracket{flex-direction:column;}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>🏐 Gestão de Torneio Vôlei de Praia</h2>
+</header>
+
+<div class="container">
+
+<div class="card">
+<h3>Cadastro do Torneio</h3>
+<input id="nomeTorneio" placeholder="Nome do torneio">
+<input type="date" id="dataTorneio">
+<input id="localTorneio" placeholder="Local">
+<button onclick="salvarTorneio()">Salvar Torneio</button>
+</div>
+
+<div id="categorias"></div>
+
+<div class="card">
+<h3>Adicionar Categoria</h3>
+<input id="catNome" placeholder="Nome da categoria">
+<input id="catDuplas" type="number" placeholder="Qtd Duplas">
+<input id="catGrupos" type="number" placeholder="Qtd Grupos">
+<label>
+<input type="checkbox" id="catSeries"> Dividir em Ouro/Prata/Bronze
+</label>
+<button onclick="criarCategoria()">Criar Categoria</button>
+</div>
+
+</div>
+
+<script>
+let db = JSON.parse(localStorage.getItem("torneioDB")) || {
+    torneio:{},
+    categorias:[]
+};
+
+function salvar(){
+    localStorage.setItem("torneioDB",JSON.stringify(db));
+}
+
+function salvarTorneio(){
+    db.torneio.nome = nomeTorneio.value;
+    db.torneio.data = dataTorneio.value;
+    db.torneio.local = localTorneio.value;
+    salvar();
+    alert("Torneio salvo!");
+}
+
+function criarCategoria(){
+    const categoria = {
+        id:Date.now(),
+        nome:catNome.value,
+        duplas:[],
+        grupos:[],
+        qtdDuplas:parseInt(catDuplas.value),
+        qtdGrupos:parseInt(catGrupos.value),
+        series:catSeries.checked,
+        status:"running"
+    };
+    db.categorias.push(categoria);
+    salvar();
+    render();
+}
+
+function render(){
+    const div = document.getElementById("categorias");
+    div.innerHTML="";
+    db.categorias.forEach(cat=>{
+        let card = document.createElement("div");
+        card.className="card";
+        card.innerHTML=`
+        <h3>${cat.nome} 
+        <span class="${cat.status==='running'?'status-running':'status-done'}">
+        ${cat.status==='running'?'🔄 Em andamento':'✅ Finalizado'}
+        </span></h3>
+        <button onclick="addDupla(${cat.id})">Adicionar Dupla</button>
+        <button onclick="sortear(${cat.id})">Sortear Grupos</button>
+        <button onclick="reiniciar(${cat.id})">Reiniciar Categoria</button>
+        <div id="cat-${cat.id}"></div>
+        `;
+        div.appendChild(card);
+        renderCategoria(cat);
+    });
+}
+
+function addDupla(id){
+    const nome = prompt("Nome da dupla:");
+    if(!nome) return;
+    db.categorias.forEach(cat=>{
+        if(cat.id===id){
+            cat.duplas.push({nome});
+        }
+    });
+    salvar();
+    render();
+}
+
+function sortear(id){
+    const cat = db.categorias.find(c=>c.id===id);
+    let shuffled = [...cat.duplas].sort(()=>Math.random()-0.5);
+    cat.grupos=[];
+    for(let i=0;i<cat.qtdGrupos;i++){
+        cat.grupos.push({
+            nome:"Grupo "+String.fromCharCode(65+i),
+            duplas:[],
+            jogos:[],
+            tabela:[]
+        });
+    }
+    shuffled.forEach((d,i)=>{
+        cat.grupos[i % cat.qtdGrupos].duplas.push({
+            nome:d.nome,
+            v:0,d:0,pf:0,ps:0
+        });
+    });
+    gerarJogos(cat);
+    salvar();
+    render();
+}
+
+function gerarJogos(cat){
+    cat.grupos.forEach(g=>{
+        g.jogos=[];
+        for(let i=0;i<g.duplas.length;i++){
+            for(let j=i+1;j<g.duplas.length;j++){
+                g.jogos.push({
+                    a:i,b:j,
+                    pa:null,pb:null,
+                    finalizado:false
+                });
+            }
+        }
+    });
+}
+
+function validarPlacar(pa,pb){
+    if(pa<21 && pb<21) return false;
+    if(Math.abs(pa-pb)<2) return false;
+    return true;
+}
+
+function finalizarJogo(catId,gIndex,jIndex){
+    const cat=db.categorias.find(c=>c.id===catId);
+    const jogo=cat.grupos[gIndex].jogos[jIndex];
+    const pa=parseInt(prompt("Pontos dupla A"));
+    const pb=parseInt(prompt("Pontos dupla B"));
+    if(!validarPlacar(pa,pb)){
+        alert("Placar inválido!");
+        return;
+    }
+    jogo.pa=pa;
+    jogo.pb=pb;
+    jogo.finalizado=true;
+    atualizarTabela(cat,gIndex);
+    salvar();
+    render();
+}
+
+function atualizarTabela(cat,gIndex){
+    const grupo=cat.grupos[gIndex];
+    grupo.duplas.forEach(d=>{
+        d.v=0; d.d=0; d.pf=0; d.ps=0;
+    });
+    grupo.jogos.forEach(j=>{
+        if(j.finalizado){
+            let A=grupo.duplas[j.a];
+            let B=grupo.duplas[j.b];
+            A.pf+=j.pa; A.ps+=j.pb;
+            B.pf+=j.pb; B.ps+=j.pa;
+            if(j.pa>j.pb){A.v++;B.d++;}
+            else{B.v++;A.d++;}
+        }
+    });
+    grupo.duplas.sort((a,b)=>{
+        if(b.v!==a.v) return b.v-a.v;
+        if((b.pf-b.ps)!==(a.pf-a.ps))
+            return (b.pf-b.ps)-(a.pf-a.ps);
+        return b.pf-a.pf;
+    });
+}
+
+function renderCategoria(cat){
+    const div=document.getElementById("cat-"+cat.id);
+    div.innerHTML="";
+    cat.grupos.forEach((g,gi)=>{
+        let groupDiv=document.createElement("div");
+        groupDiv.className="group";
+        groupDiv.innerHTML=`<h4>${g.nome}</h4>`;
+        g.duplas.forEach((d,i)=>{
+            groupDiv.innerHTML+=`
+            <div class="${i===0?'highlight':''}">
+            ${i+1}º ${d.nome} | V:${d.v} | Saldo:${d.pf-d.ps}
+            </div>`;
+        });
+        g.jogos.forEach((j,ji)=>{
+            let A=g.duplas[j.a];
+            let B=g.duplas[j.b];
+            groupDiv.innerHTML+=`
+            <div>
+            ${A.nome} vs ${B.nome}
+            ${j.finalizado? j.pa+"x"+j.pb:
+            `<button onclick="finalizarJogo(${cat.id},${gi},${ji})">
+            Finalizar</button>`}
+            </div>`;
+        });
+        div.appendChild(groupDiv);
+    });
+}
+
+function reiniciar(id){
+    if(!confirm("Reiniciar categoria?")) return;
+    db.categorias = db.categorias.filter(c=>c.id!==id);
+    salvar();
+    render();
+}
+
+render();
+</script>
+
+</body>
+</html>

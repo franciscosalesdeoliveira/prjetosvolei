@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sorteio Vôlei de Praia</title>
+<style>
+  :root {
+    --sand: #f4d98a; --sand-dark: #c9a84c; --sand-deep: #8b6914;
+    --white: #fffde7; --text-dark: #3e2723; --accent: #ff6f00;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { font-family:'Georgia',serif; min-height:100vh; overflow-x:hidden; background:linear-gradient(180deg,#87ceeb 0%,#4fc3f7 35%,#ffe082 70%,#f4d98a 100%); }
+
+  /* FUNDO */
+  .beach-bg { position:fixed; inset:0; pointer-events:none; z-index:0; }
+  .sun { position:absolute; top:5%; left:50%; transform:translateX(-50%); width:80px; height:80px; background:radial-gradient(circle,#fff9c4,#ffd740,#ff8f00); border-radius:50%; box-shadow:0 0 40px 20px rgba(255,215,64,.5); animation:sunPulse 4s ease-in-out infinite; }
+  @keyframes sunPulse { 0%,100%{box-shadow:0 0 40px 20px rgba(255,215,64,.5)} 50%{box-shadow:0 0 60px 30px rgba(255,215,64,.7)} }
+  .sun-rays { position:absolute; top:5%; left:50%; transform:translateX(-50%); width:80px; height:80px; animation:rotateSun 20s linear infinite; }
+  .ray { position:absolute; top:50%; left:50%; width:3px; height:28px; background:linear-gradient(transparent,rgba(255,220,0,.4)); transform-origin:top center; border-radius:2px; }
+  @keyframes rotateSun { to{transform:translateX(-50%) rotate(360deg)} }
+  .cloud { position:absolute; background:rgba(255,255,255,.8); border-radius:50px; animation:floatCloud linear infinite; }
+  .cloud::before,.cloud::after { content:''; position:absolute; background:inherit; border-radius:50%; }
+  .cloud1 { width:80px; height:25px; top:15%; left:-100px; animation-duration:35s; }
+  .cloud1::before { width:45px; height:45px; top:-20px; left:10px; }
+  .cloud1::after  { width:30px; height:30px; top:-12px; left:40px; }
+  .cloud2 { width:60px; height:20px; top:22%; left:-80px; animation-duration:50s; animation-delay:-15s; opacity:.7; }
+  .cloud2::before { width:35px; height:35px; top:-15px; left:8px; }
+  .cloud2::after  { width:25px; height:25px; top:-10px; left:30px; }
+  @keyframes floatCloud { from{transform:translateX(-200px)} to{transform:translateX(calc(100vw + 200px))} }
+  .net-container { position:absolute; bottom:25%; left:0; right:0; display:flex; flex-direction:column; align-items:center; }
+  .net-post-left,.net-post-right { position:absolute; bottom:-5px; width:8px; height:90px; background:linear-gradient(#8b6914,#5d4037); border-radius:4px; }
+  .net-post-left{left:8%} .net-post-right{right:8%}
+  .net-cable { width:84%; height:3px; background:linear-gradient(90deg,#8b6914,#ffd740,#8b6914); border-radius:2px; }
+  .net-mesh  { width:84%; display:flex; flex-direction:column; }
+  .net-row   { display:flex; height:8px; border-bottom:1.5px solid rgba(255,255,255,.6); }
+  .net-cell  { flex:1; border-right:1.5px solid rgba(255,255,255,.6); background:rgba(255,255,255,.08); }
+  .net-cell:last-child { border-right:none; }
+  .sand-ground { position:absolute; bottom:0; left:0; right:0; height:25%; background:linear-gradient(180deg,#f4d98a 0%,#e8c766 40%,#c9a84c 100%); }
+  .sand-dot { position:absolute; width:2px; height:2px; background:rgba(139,105,20,.3); border-radius:50%; }
+
+  /* LAYOUT */
+  .main-container { position:relative; z-index:10; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:10px 16px 30px; }
+
+  /* HEADER */
+  .header { text-align:center; margin-top:8px; margin-bottom:8px; }
+  .header h1 { font-size:1.6rem; font-weight:900; color:var(--white); text-shadow:2px 3px 6px rgba(0,0,0,.4); line-height:1.1; }
+  .subtitle { font-size:.8rem; color:rgba(255,255,255,.85); margin-top:3px; font-style:italic; text-shadow:1px 1px 3px rgba(0,0,0,.3); }
+
+  /* MOEDA */
+  #coinCanvas { display:block; margin:10px auto 4px; filter:drop-shadow(0 6px 18px rgba(0,0,0,.35)); }
+
+  /* STATUS */
+  .status-text { min-height:28px; text-align:center; font-size:1rem; font-weight:bold; font-style:italic; color:var(--white); text-shadow:1px 2px 4px rgba(0,0,0,.4); transition:opacity .3s; margin-bottom:4px; }
+
+  /* RESULTADO */
+  .result-card { background:rgba(255,255,255,.92); backdrop-filter:blur(10px); border-radius:20px; padding:14px 16px; text-align:center; width:calc(100% - 32px); max-width:340px; border:2px solid rgba(255,215,64,.8); box-shadow:0 8px 32px rgba(0,0,0,.2); display:none; overflow:hidden; }
+  .result-card.visible { display:block; animation:slideUp .5s cubic-bezier(.34,1.56,.64,1) forwards; }
+  @keyframes slideUp { from{opacity:0;transform:translateY(20px) scale(.9)} to{opacity:1;transform:translateY(0) scale(1)} }
+  .result-title { font-size:.75rem; text-transform:uppercase; letter-spacing:2px; color:var(--sand-deep); font-weight:700; margin-bottom:4px; }
+  .result-value { font-size:1.8rem; font-weight:900; color:var(--text-dark); display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px; }
+  .choices-title { font-size:.7rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--sand-deep); font-weight:700; margin-bottom:8px; }
+  .choices-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:100%; }
+  .choice-btn { background:linear-gradient(135deg,#ffd740,#f9a825); border:2px solid var(--sand-dark); border-radius:12px; padding:8px 2px; font-size:.68rem; font-weight:800; color:var(--text-dark); cursor:pointer; text-align:center; transition:all .2s; text-transform:uppercase; line-height:1.2; width:100%; min-width:0; word-break:break-word; box-shadow:0 3px 8px rgba(0,0,0,.15); }
+  .choice-btn:active { transform:scale(.95); }
+  .choice-btn:disabled { background:#e0e0e0; border-color:#bdbdbd; color:#9e9e9e; box-shadow:none; cursor:default; }
+  .choice-btn.selected { background:linear-gradient(135deg,#ff6f00,#e65100); border-color:#bf360c; color:white; box-shadow:0 4px 12px rgba(255,111,0,.4); }
+  .choice-btn .choice-icon { font-size:1.2rem; display:block; margin-bottom:2px; }
+  .final-msg { margin-top:10px; padding:10px; background:linear-gradient(135deg,#e8f5e9,#c8e6c9); border-radius:12px; border:1.5px solid #4caf50; font-size:.85rem; font-weight:bold; color:#1b5e20; text-align:center; display:none; }
+  .final-msg.visible { display:block; }
+
+  /* BOTÕES */
+  .btn-launch { background:linear-gradient(135deg,#ff8f00,#ff6f00,#e65100); border:none; border-radius:50px; padding:16px 40px; font-size:1.05rem; font-weight:900; color:white; cursor:pointer; letter-spacing:1px; text-transform:uppercase; box-shadow:0 6px 20px rgba(255,111,0,.5); transition:all .2s; margin:6px 0; width:100%; max-width:280px; text-shadow:0 1px 2px rgba(0,0,0,.3); }
+  .btn-launch:active:not(:disabled) { transform:scale(.96); }
+  .btn-launch:disabled { background:linear-gradient(135deg,#bdbdbd,#9e9e9e); box-shadow:none; cursor:default; }
+  .btn-new { background:rgba(255,255,255,.25); backdrop-filter:blur(4px); border:2px solid rgba(255,255,255,.6); border-radius:50px; padding:10px 30px; font-size:.85rem; font-weight:700; color:white; cursor:pointer; text-transform:uppercase; box-shadow:0 3px 10px rgba(0,0,0,.15); transition:all .2s; display:none; margin-top:6px; width:100%; max-width:280px; }
+  .btn-new.visible { display:block; }
+  .btn-new:active { transform:scale(.96); }
+
+  /* PARTÍCULAS */
+  .sand-particle { position:fixed; pointer-events:none; z-index:100; border-radius:50%; background:radial-gradient(circle,#f4d98a,#c9a84c); animation:sandRise var(--dur) ease-out forwards; }
+  @keyframes sandRise { 0%{transform:translate(0,0) scale(1);opacity:1} 100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0} }
+  .confetti { position:fixed; pointer-events:none; z-index:200; animation:confettiFall var(--fdur) ease-in forwards; }
+  @keyframes confettiFall { 0%{transform:translate(var(--sx),-20px) rotate(0deg);opacity:1} 80%{opacity:1} 100%{transform:translate(var(--ex),100vh) rotate(720deg);opacity:0} }
+</style>
+</head>
+<body>
+
+<div class="beach-bg">
+  <div class="sun"></div>
+  <div class="sun-rays" id="sunRays"></div>
+  <div class="cloud cloud1"></div>
+  <div class="cloud cloud2"></div>
+  <div class="net-container" id="netContainer"></div>
+  <div class="sand-ground"></div>
+  <div id="sandDots"></div>
+</div>
+
+<div class="main-container">
+  <div class="header">
+    <h1>🏐 Vôlei de Praia<br>Sorteio</h1>
+    <p class="subtitle">Cara ou Coroa para decidir a escolha</p>
+  </div>
+
+  <canvas id="coinCanvas" width="160" height="160"></canvas>
+
+  <div class="status-text" id="statusText">Toque em "Lançar Moeda" para começar!</div>
+
+  <button class="btn-launch" id="btnLaunch" onclick="launchCoin()">🪙 Lançar Moeda</button>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-title">Resultado</div>
+    <div class="result-value" id="resultValue">—</div>
+    <div class="choices-title">Dupla vencedora escolhe:</div>
+    <div class="choices-grid">
+      <button class="choice-btn" onclick="makeChoice(this,'Sacar')"><span class="choice-icon">🏐</span>Escolher<br>Bola/Sacar</button>
+      <button class="choice-btn" onclick="makeChoice(this,'Receber')"><span class="choice-icon">🤲</span>Escolher<br>Receber</button>
+      <button class="choice-btn" onclick="makeChoice(this,'Lado da Quadra')"><span class="choice-icon">🏖️</span>Escolher<br>Lado/Quadra</button>
+    </div>
+    <div class="final-msg" id="finalMsg"></div>
+  </div>
+
+  <button class="btn-new" id="btnNew" onclick="newDraw()">🔄 Novo Sorteio</button>
+</div>
+
+<script>
+/* === FUNDO === */
+(function(){
+  const rays=document.getElementById('sunRays');
+  for(let i=0;i<12;i++){const r=document.createElement('div');r.className='ray';r.style.transform=`translateX(-50%) translateY(-50%) rotate(${i*30}deg) translateY(-50px)`;rays.appendChild(r);}
+})();
+(function(){
+  const net=document.getElementById('netContainer');
+  ['net-post-left','net-post-right'].forEach(c=>{const d=document.createElement('div');d.className=c;net.appendChild(d);});
+  const cable=document.createElement('div');cable.className='net-cable';net.appendChild(cable);
+  const mesh=document.createElement('div');mesh.className='net-mesh';
+  for(let r=0;r<5;r++){const row=document.createElement('div');row.className='net-row';for(let c=0;c<12;c++){const cell=document.createElement('div');cell.className='net-cell';row.appendChild(cell);}mesh.appendChild(row);}
+  net.appendChild(mesh);
+})();
+(function(){
+  const d=document.getElementById('sandDots');
+  d.style.cssText='position:absolute;inset:0;overflow:hidden;pointer-events:none';
+  for(let i=0;i<60;i++){const dot=document.createElement('div');dot.className='sand-dot';dot.style.left=Math.random()*100+'%';dot.style.top=Math.random()*100+'%';d.appendChild(dot);}
+})();
+
+/* === MOEDA (Canvas) === */
+const canvas = document.getElementById('coinCanvas');
+const ctx    = canvas.getContext('2d');
+const CW = canvas.width, CH = canvas.height;
+const CR = CW/2 - 10;
+
+let coinIsGold = true; // true = dourado (Cara), false = prata (Coroa)
+let spinRAF    = null;
+let isAnimating = false;
+
+function drawCoin(scaleX) {
+  // scaleX: valor entre -1 e 1, simula rotação horizontal
+  ctx.clearRect(0, 0, CW, CH);
+  ctx.save();
+  ctx.translate(CW/2, CH/2);
+  ctx.scale(scaleX, 1);
+
+  // Sombra
+  ctx.shadowColor   = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur    = 14;
+  ctx.shadowOffsetY = 5;
+
+  // Círculo base
+  ctx.beginPath();
+  ctx.arc(0, 0, CR, 0, Math.PI*2);
+
+  if (coinIsGold) {
+    const g = ctx.createRadialGradient(-CR*0.3,-CR*0.3,CR*0.05, 0,0,CR);
+    g.addColorStop(0,   '#fff9c4');
+    g.addColorStop(0.25,'#ffd740');
+    g.addColorStop(0.6, '#f9a825');
+    g.addColorStop(1,   '#e65100');
+    ctx.fillStyle = g;
+  } else {
+    const g = ctx.createRadialGradient(-CR*0.3,-CR*0.3,CR*0.05, 0,0,CR);
+    g.addColorStop(0,   '#ffffff');
+    g.addColorStop(0.3, '#e8e8e8');
+    g.addColorStop(0.65,'#bdbdbd');
+    g.addColorStop(1,   '#757575');
+    ctx.fillStyle = g;
+  }
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+
+  // Borda
+  ctx.strokeStyle = coinIsGold ? '#bf8c00' : '#9e9e9e';
+  ctx.lineWidth   = 6;
+  ctx.stroke();
+
+  // Reflexo brilhante
+  ctx.beginPath();
+  ctx.ellipse(-CR*0.22, -CR*0.28, CR*0.32, CR*0.18, -0.6, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,0.38)';
+  ctx.fill();
+
+  // Emoji central
+  ctx.shadowBlur = 3;
+  ctx.shadowColor = 'rgba(0,0,0,0.2)';
+  ctx.font = `${Math.round(CR*0.68)}px serif`;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(coinIsGold ? '🏐' : '🏖️', 0, CR*0.05);
+
+  ctx.restore();
+}
+
+// Desenha moeda dourada parada ao iniciar
+drawCoin(1);
+
+function startSpin() {
+  // Animação decorativa apenas — não influencia no resultado
+  isAnimating = true;
+  let angle = 0;
+  function frame() {
+    if (!isAnimating) return;
+    angle += 0.1;
+    // scaleX oscila entre -1 e 1 (simula giro)
+    drawCoin(Math.cos(angle));
+    spinRAF = requestAnimationFrame(frame);
+  }
+  spinRAF = requestAnimationFrame(frame);
+}
+
+function stopSpin(finalGold) {
+  // Para a animação e exibe a face correta
+  isAnimating = false;
+  if (spinRAF) cancelAnimationFrame(spinRAF);
+  coinIsGold = finalGold;
+
+  // Anima de scaleX=0 até 1 para revelar suavemente
+  let s = 0;
+  function reveal() {
+    s += 0.07;
+    if (s >= 1) { drawCoin(1); return; }
+    drawCoin(s);
+    requestAnimationFrame(reveal);
+  }
+  reveal();
+}
+
+/* === ÁUDIO === */
+let audioCtx = null;
+function getAudio() { if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
+function playSpin() {
+  try {
+    const c=getAudio(),o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);o.type='sine';
+    o.frequency.setValueAtTime(600,c.currentTime);
+    o.frequency.exponentialRampToValueAtTime(200,c.currentTime+0.3);
+    g.gain.setValueAtTime(0.1,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.3);
+    o.start();o.stop(c.currentTime+0.3);
+  } catch(e){}
+}
+function playLand() {
+  try {
+    const c=getAudio(),buf=c.createBuffer(1,c.sampleRate*0.3,c.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    const s=c.createBufferSource();s.buffer=buf;
+    const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=800;
+    const g=c.createGain();g.gain.setValueAtTime(0.12,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.3);
+    s.connect(f);f.connect(g);g.connect(c.destination);s.start();s.stop(c.currentTime+0.3);
+  } catch(e){}
+}
+
+/* === ESTADO === */
+
+let isSpinning=false, currentResult=null;
+let statusInterval=null;
+const statusMsgs=['Girando a moeda…','A moeda está no ar…','E o resultado é…'];
+
+function startStatus() {
+  let i=0;
+  const el=document.getElementById('statusText');
+  el.textContent=statusMsgs[0];
+  statusInterval=setInterval(()=>{
+    i=(i+1)%statusMsgs.length;
+    el.style.opacity='0';
+    setTimeout(()=>{el.textContent=statusMsgs[i];el.style.opacity='1';},200);
+  },1200);
+}
+function stopStatus(txt) {
+  clearInterval(statusInterval);
+  const el=document.getElementById('statusText');
+  el.style.opacity='0';
+  setTimeout(()=>{el.textContent=txt;el.style.opacity='1';},200);
+}
+
+/* === PARTÍCULAS === */
+function spawnSand() {
+  const rect=canvas.getBoundingClientRect();
+  const cx=rect.left+rect.width/2, cy=rect.bottom;
+  for(let i=0;i<20;i++){
+    const p=document.createElement('div');p.className='sand-particle';
+    const a=(Math.random()*160+190)*(Math.PI/180);
+    const dist=30+Math.random()*60;
+    const dur=0.4+Math.random()*0.5;
+    const sz=2+Math.random()*3;
+    p.style.cssText=`left:${cx}px;top:${cy}px;width:${sz}px;height:${sz}px;--tx:${Math.cos(a)*dist}px;--ty:${Math.sin(a)*dist-20}px;--dur:${dur}s`;
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),dur*1000+100);
+  }
+}
+function spawnConfetti() {
+  const emojis=['🏐','🌟','✨','🎉','⭐'];
+  for(let i=0;i<20;i++){
+    const c=document.createElement('div');c.className='confetti';
+    const sx=Math.random()*window.innerWidth;
+    const dur=1.5+Math.random()*1.5;
+    c.style.cssText=`left:0;top:0;font-size:${12+Math.random()*10}px;--sx:${sx}px;--ex:${sx+(Math.random()-.5)*200}px;--fdur:${dur}s;animation-delay:${Math.random()*.6}s`;
+    c.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),(dur+1)*1000);
+  }
+}
+
+/* === SORTEIO === */
+function launchCoin() {
+  if (isSpinning) return;
+  isSpinning = true;
+
+  // Resultado sorteado aqui — 100% independente da animação
+  const arr = new Uint8Array(1);
+  crypto.getRandomValues(arr);
+  const isCara = (arr[0] % 2 === 0);
+  currentResult = isCara ? 'Cara' : 'Coroa';
+
+  document.getElementById('resultCard').classList.remove('visible');
+  document.getElementById('btnNew').classList.remove('visible');
+  document.getElementById('finalMsg').classList.remove('visible');
+  document.getElementById('btnLaunch').disabled = true;
+
+  startStatus();
+  playSpin();
+  setTimeout(playSpin, 700);
+  setTimeout(playSpin, 1400);
+
+  // Inicia animação decorativa
+  coinIsGold = true; // sempre começa dourado
+  drawCoin(1);
+  startSpin();
+
+  // Duração aleatória 2.5–3.2s
+  const dur = 2500 + Math.random() * 700;
+
+  setTimeout(() => {
+    // Para e mostra cor correta (sem influenciar no resultado já sorteado)
+    stopSpin(isCara); // true = dourado = Cara, false = prata = Coroa
+
+    spawnSand();
+    playLand();
+    if (navigator.vibrate) navigator.vibrate([40, 20, 40]);
+
+    setTimeout(() => {
+      isSpinning = false;
+
+      const emoji = isCara ? '🏐' : '🏖️';
+      document.getElementById('resultValue').innerHTML = `${emoji} ${currentResult}`;
+      resetChoices();
+      document.getElementById('resultCard').classList.add('visible');
+      document.getElementById('btnNew').classList.add('visible');
+      stopStatus(`✅ Resultado: ${currentResult}!`);
+
+      spawnConfetti();
+    }, 600);
+  }, dur);
+}
+
+function makeChoice(btn, choice) {
+  document.querySelectorAll('.choice-btn').forEach(b=>{b.disabled=true;b.classList.remove('selected');});
+  btn.classList.add('selected');
+  const msg = document.getElementById('finalMsg');
+  msg.textContent = `✅ Definido! A dupla vencedora vai ${choice==='Sacar'?'sacar':choice==='Receber'?'receber':'escolher o lado da quadra'}.`;
+  msg.classList.add('visible');
+  if (navigator.vibrate) navigator.vibrate([50,30,50]);
+}
+
+function resetChoices() {
+  document.querySelectorAll('.choice-btn').forEach(b=>{b.disabled=false;b.classList.remove('selected');});
+  document.getElementById('finalMsg').classList.remove('visible');
+}
+
+function newDraw() {
+  isAnimating = false;
+  if (spinRAF) cancelAnimationFrame(spinRAF);
+  coinIsGold = true;
+  drawCoin(1);
+
+  document.getElementById('resultCard').classList.remove('visible');
+  document.getElementById('btnNew').classList.remove('visible');
+  document.getElementById('finalMsg').classList.remove('visible');
+  document.getElementById('statusText').textContent = 'Toque em "Lançar Moeda" para começar!';
+  document.getElementById('btnLaunch').disabled = false;
+  currentResult = null;
+  isSpinning = false;
+}
+</script>
+</body>
+</html>
